@@ -29,29 +29,30 @@ def generate_map_html(vote_status=True):
           }}
         </style>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={GOOGLE_MAPS_API_KEY}" async defer onload="initMap()"></script>
-<script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
-
+        <!-- Load Google Maps + Clusterer -->
+        <script src="https://maps.googleapis.com/maps/api/js?key={GOOGLE_MAPS_API_KEY}" async defer></script>
+        <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
 
         <script>
           const data = {filtered_json};
 
-          function initMap() {{
+          window.initMap = function() {{
             const map = new google.maps.Map(document.getElementById("map"), {{
               center: {{ lat: 47.6, lng: -122.3 }},
               zoom: 9,
             }});
 
-            // Add markers
             const markers = data.map(person => {{
               return new google.maps.Marker({{
-                position: {{ lat: parseFloat(person.lat), lng: parseFloat(person.lng) }},
+                position: {{
+                  lat: parseFloat(person.lat),
+                  lng: parseFloat(person.lng)
+                }},
                 icon: "http://maps.google.com/mapfiles/ms/icons/{marker_color}-dot.png",
                 title: `${{person.name}} ({status_str})`
               }});
             }});
 
-            // SVG renderer for custom cluster styles
             const renderer = {{
               render({{ count, position }}) {{
                 const color = count > 100 ? "orange" : "blue";
@@ -65,25 +66,25 @@ def generate_map_html(vote_status=True):
                   position,
                   icon: {{
                     url: `data:image/svg+xml;base64,${{svg}}`,
-                    scaledSize: new google.maps.Size(40, 40),
-                  }},
-                  label: {{
-                    text: String(count),
-                    color: "white",
-                    fontSize: "12px",
-                    fontWeight: "bold"
+                    scaledSize: new google.maps.Size(40, 40)
                   }}
                 }});
               }}
             }};
 
-            // Create clusterer with custom renderer
             new markerClusterer.MarkerClusterer({{
-              markers,
               map,
+              markers,
               renderer
             }});
-          }}
+          }};
+
+          // Fallback manual init after everything loads (iframe-safe)
+          window.onload = function() {{
+            if (typeof google !== "undefined" && google.maps) {{
+              window.initMap();
+            }}
+          }};
         </script>
       </head>
       <body>
@@ -104,3 +105,4 @@ with tab1:
 
 with tab2:
     st.components.v1.html(generate_map_html(False), height=750)
+
