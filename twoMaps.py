@@ -2,18 +2,31 @@ import streamlit as st
 import json
 
 # Load voter data
-with open("voter_data.json", "r") as f:
+with open("voter_data_AUG.json", "r") as f:
     voter_data = json.load(f)
+# --- Count by vote status ---
+voted_count = sum(1 for p in voter_data if p["voted"] is True)
+not_voted_count = sum(1 for p in voter_data if p["voted"] is False)
+unknown_count = sum(1 for p in voter_data if p["voted"] == "UNKNOWN")
 
+
+# --- Display counts -
 # Google Maps API Key
 GOOGLE_MAPS_API_KEY = "AIzaSyBqLvvo1yD-1DNKzGexTJbGoqR-OaokipU"
 
 # --- Generate HTML with SVG-based custom renderer ---
-def generate_map_html(vote_status=True):
-    marker_color = "green" if vote_status else "red"
-    status_str = "Voted" if vote_status else "Not Voted"
+def generate_map_html(vote_status):
+    if vote_status is True:
+        marker_color = "green"
+        status_str = "Voted"
+    elif vote_status is False:
+        marker_color = "red"
+        status_str = "Not Voted"
+    else:
+        marker_color = "orange"
+        status_str = "Unknown"
 
-    # Filter and convert data
+    # Filter records by exact match
     filtered_data = [p for p in voter_data if p.get("voted") == vote_status]
     filtered_json = json.dumps(filtered_data)
 
@@ -49,7 +62,7 @@ def generate_map_html(vote_status=True):
                   lng: parseFloat(person.lng)
                 }},
                 icon: "http://maps.google.com/mapfiles/ms/icons/{marker_color}-dot.png",
-                title: `${{person.name}} ({status_str})`
+                title: `(${status_str}) Count: ${{person.count}}`
               }});
             }});
 
@@ -79,7 +92,6 @@ def generate_map_html(vote_status=True):
             }});
           }};
 
-          // Fallback manual init after everything loads (iframe-safe)
           window.onload = function() {{
             if (typeof google !== "undefined" && google.maps) {{
               window.initMap();
@@ -98,7 +110,7 @@ def generate_map_html(vote_status=True):
 st.set_page_config(layout="wide")
 st.title("🗳️ Muslim Voter Map (Private View)")
 
-tab1, tab2 = st.tabs(["✅ Voted", "❌ Not Voted"])
+tab1, tab2, tab3 = st.tabs(["✅ Voted", "❌ Not Voted", "❓ Unknown"])
 
 with tab1:
     st.components.v1.html(generate_map_html(True), height=750)
@@ -106,3 +118,5 @@ with tab1:
 with tab2:
     st.components.v1.html(generate_map_html(False), height=750)
 
+with tab3:
+    st.components.v1.html(generate_map_html("UNKNOWN"), height=750)
